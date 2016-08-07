@@ -107,7 +107,7 @@ struct FitFileReaderState
     QList<QString> deviceInfos;
     int prod_info;
     double timestamp;
-    double last_timestamp;
+    double last_timestamp = 0;
 
     FitFileReaderState(QFile &file, QStringList &errors) :
         file(file), errors(errors), rideFile(NULL), start_time(0),
@@ -1060,6 +1060,7 @@ struct FitFileReaderState
             bryton_message_counter++;
             }
 
+                last_timestamp = timestamp;
                 return; // Sketchy, but some FIT files do this.
             
         }
