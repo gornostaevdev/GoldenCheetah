@@ -106,6 +106,8 @@ struct FitFileReaderState
     XDataSeries *swimXdata;
     QList<QString> deviceInfos;
     int prod_info;
+    double timestamp;
+    double last_timestamp;
 
     FitFileReaderState(QFile &file, QStringList &errors) :
         file(file), errors(errors), rideFile(NULL), start_time(0),
@@ -845,6 +847,10 @@ struct FitFileReaderState
         double smO2 = 0, tHb = 0;
         //bool run=false;
 
+
+
+
+
         fit_value_t lati = NA_VALUE, lngi = NA_VALUE;
         int i = 0;
         foreach(const FitField &field, def.fields) {
@@ -857,6 +863,7 @@ struct FitFileReaderState
             switch (field.num) {
                 case 253: // TIMESTAMP
                           time = value + qbase_time.toTime_t();
+                          timestamp = value;
                           // Time MUST NOT go backwards
                           // You canny break the laws of physics, Jim
                           if (time < last_time)
@@ -991,9 +998,9 @@ struct FitFileReaderState
             badgps = 1;
         }
 
-        if (time == last_time){
+        if (timestamp == last_timestamp){
             // NOW we got into our issue
-            // Lets check twice if it's OUR Bryton 310
+            // Lets check twice if it's our Bryton 310
             //  [1] manufacturer 267 
             //  [2] product 1505 
             int lastPointIndex = rideFile->dataPoints().count();
@@ -1024,34 +1031,32 @@ struct FitFileReaderState
                     [78] enhanced_altitude 173.20000000000005 m
                 */                
 
-                if (watts != NA_VALUE) {
+                if (watts != 0) {
                     rideFile->setPointValue(lastPointIndex, RideFile::watts, watts);
                 }
-                if (lrbalance != NA_VALUE) {
+                if (lrbalance != RideFile::NA) {
                     rideFile->setPointValue(lastPointIndex, RideFile::lrbalance, lrbalance);
                 }
-                if (temperature != NA_VALUE) {
+                if (temperature != RideFile::NA) {
                     rideFile->setPointValue(lastPointIndex, RideFile::temp, temperature);
                 } 
-                if (kph != NA_VALUE) {
+                if (kph != 0) {
                     rideFile->setPointValue(lastPointIndex, RideFile::kph, kph);
                 } 
-                if (km != NA_VALUE) {
+                if (km != 0) {
                     rideFile->setPointValue(lastPointIndex, RideFile::km, km);
                 } 
-                if (hr != NA_VALUE) {
+                if (hr != 0) {
                     rideFile->setPointValue(lastPointIndex, RideFile::hr, hr);
                 } 
-                if (cad != NA_VALUE) {
+                if (cad != 0) {
                     rideFile->setPointValue(lastPointIndex, RideFile::cad, cad);
                 }    
-                if (lati != NA_VALUE && lngi != NA_VALUE) {
+                // GPS data always goes in the last message
                     rideFile->setPointValue(lastPointIndex, RideFile::lat, lat);
                     rideFile->setPointValue(lastPointIndex, RideFile::lon, lng);
-                }    
-                if (alt != NA_VALUE) {
                     rideFile->setPointValue(lastPointIndex, RideFile::alt, alt);
-                }                     
+
 
             }
 
@@ -1067,16 +1072,6 @@ struct FitFileReaderState
                               "%2 for event %3.").arg(time-start_time).arg(last_event_type).arg(last_event);
             return;
             */
-        }
-        if (lati != NA_VALUE && lngi != NA_VALUE) {
-            lat = lati * 180.0 / 0x7fffffff;
-            lng = lngi * 180.0 / 0x7fffffff;
-        } else
-        {
-            // If lat/lng are missng, set to 0/0 and fill point from last point as 0/0)
-            lat = 0;
-            lng = 0;
-            badgps = 1;
         }
         if (start_time == 0) {
             start_time = time - 1; // recording interval?
@@ -1187,6 +1182,11 @@ struct FitFileReaderState
             }
         }
 
+
+
+
+
+
         if (km < 0.00001f) km = last_distance;
         rideFile->appendPoint(secs, cad, hr, km, kph, nm, watts, alt, lng, lat, headwind, slope, temperature,
                      lrbalance, leftTorqueEff, rightTorqueEff, leftPedalSmooth, rightPedalSmooth,
@@ -1196,6 +1196,7 @@ struct FitFileReaderState
                      smO2, tHb, rvert, rcad, rcontact, 0.0, interval);
         last_time = time;
         last_distance = km;
+        last_timestamp = timestamp;
     }
 
     void decodeLength(const FitDefinition &def, int time_offset,
