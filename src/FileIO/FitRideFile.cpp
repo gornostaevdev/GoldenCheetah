@@ -993,7 +993,7 @@ struct FitFileReaderState
 
         if (time == last_time){
             // NOW we got into our issue
-            // Lets check twice if it's our Bryton 310
+            // Lets check twice if it's OUR Bryton 310
             //  [1] manufacturer 267 
             //  [2] product 1505 
             int lastPointIndex = rideFile->dataPoints().count();
