@@ -846,7 +846,7 @@ struct FitFileReaderState
         double rvert = 0, rcad = 0, rcontact = 0;
         double smO2 = 0, tHb = 0;
         //bool run=false;
-
+        int bryton_message_counter = 0;
 
 
 
@@ -1029,7 +1029,9 @@ struct FitFileReaderState
                     [1] position_long 592824564 semicircles
                     [2] altitude 173.20000000000005 m
                     [78] enhanced_altitude 173.20000000000005 m
-                */                
+
+                * This three fields are available only in first message so we dont need to
+                * check them again.
 
                 if (watts != 0) {
                     rideFile->setPointValue(lastPointIndex, RideFile::watts, watts);
@@ -1040,24 +1042,22 @@ struct FitFileReaderState
                 if (temperature != RideFile::NA) {
                     rideFile->setPointValue(lastPointIndex, RideFile::temp, temperature);
                 } 
-                if (kph != 0) {
-                    rideFile->setPointValue(lastPointIndex, RideFile::kph, kph);
-                } 
-                if (km != 0) {
-                    rideFile->setPointValue(lastPointIndex, RideFile::km, km);
-                } 
-                if (hr != 0) {
-                    rideFile->setPointValue(lastPointIndex, RideFile::hr, hr);
-                } 
-                if (cad != 0) {
-                    rideFile->setPointValue(lastPointIndex, RideFile::cad, cad);
-                }    
-                // GPS data always goes in the last message
+                */
+
+                // Then comes 2nd message and we have to
+                if(bryton_message_counter == 0){
+                rideFile->setPointValue(lastPointIndex, RideFile::kph, kph);
+                rideFile->setPointValue(lastPointIndex, RideFile::km, km);
+                rideFile->setPointValue(lastPointIndex, RideFile::hr, hr);
+                rideFile->setPointValue(lastPointIndex, RideFile::cad, cad);
+                }
+                // GPS data always goes in the last third message
+                if(bryton_message_counter == 1){
                     rideFile->setPointValue(lastPointIndex, RideFile::lat, lat);
                     rideFile->setPointValue(lastPointIndex, RideFile::lon, lng);
                     rideFile->setPointValue(lastPointIndex, RideFile::alt, alt);
-
-
+                }
+            bryton_message_counter++;
             }
 
                 return; // Sketchy, but some FIT files do this.
