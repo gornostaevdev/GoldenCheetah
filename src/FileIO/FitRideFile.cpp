@@ -105,7 +105,6 @@ struct FitFileReaderState
     XDataSeries *weatherXdata;
     XDataSeries *swimXdata;
     QList<QString> deviceInfos;
-    int prod_info;
 
     FitFileReaderState(QFile &file, QStringList &errors) :
         file(file), errors(errors), rideFile(NULL), start_time(0),
@@ -353,12 +352,6 @@ struct FitFileReaderState
         } else if (manu == 260) {
             // Zwift!
             return "Zwift";
-        } else if (manu == 267) {
-            // Bryton
-            switch (prod) {
-                case 1505: return "Bryton Rider 310";
-                default: return QString("Bryton %1").arg(prod);
-            }            
         } else {
             return QString("Unknown FIT Device %1:%2").arg(manu).arg(prod);
         }
@@ -559,7 +552,6 @@ struct FitFileReaderState
                      break;
                 case 4:   // product
                      prod = value;
-                     prod_info = value;
                      break;
                 case 5:   // software version
                      version = value;
@@ -845,10 +837,6 @@ struct FitFileReaderState
         double smO2 = 0, tHb = 0;
         //bool run=false;
 
-
-
-
-
         fit_value_t lati = NA_VALUE, lngi = NA_VALUE;
         int i = 0;
         foreach(const FitField &field, def.fields) {
@@ -982,86 +970,8 @@ struct FitFileReaderState
                          unknown_record_fields.insert(field.num);
             }
         }
-
-
-        if (lati != NA_VALUE && lngi != NA_VALUE) {
-            lat = lati * 180.0 / 0x7fffffff;
-            lng = lngi * 180.0 / 0x7fffffff;
-        } else
-        {
-            // If lat/lng are missng, set to 0/0 and fill point from last point as 0/0)
-            lat = 0;
-            lng = 0;
-            badgps = 1;
-        }
-
-        if (time == last_time){
-            // NOW we got into our issue
-            // Lets check twice if it's our Bryton 310
-            //  [1] manufacturer 267 
-            //  [2] product 1505 
-            lastPointIndex = rideFile->dataPoints().count();
-            if(prod_info == 1505){
-
-                /* Thats our 3 data points - to be merged
-                [0] record
-                    [253] timestamp 838572707 (2016-07-27_19:51:47)
-                    [7] power 107 watts
-                    [30] left_right_balance 0 
-                    [13] temperature 21 C
-                [2] record
-                    [253] timestamp 838572707 (2016-07-27_19:51:47)
-                    [6] speed 2.282 m/s
-                    [5] distance 5.28 m
-                    [3] heart_rate 108 bpm
-                    [4] cadence 38 rpm
-                    [13] temperature 21 C
-                    [73] enhanced_speed 2.282 m/s
-                [3] unknown
-                    [253] unknown 838572707 (2016-07-27_19:51:47)
-                    [0] unknown 12 
-                [1] record
-                    [253] timestamp 838572707 (2016-07-27_19:51:47)
-                    [0] position_lat 699153781 semicircles
-                    [1] position_long 592824564 semicircles
-                    [2] altitude 173.20000000000005 m
-                    [78] enhanced_altitude 173.20000000000005 m
-                */                
-
-                if (watts != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::watts, watts);
-                }
-                if (lrbalance != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::lrbalance, lrbalance);
-                }
-                if (temperature != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::temperature, temperature);
-                } 
-                if (kph != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::kph, kph);
-                } 
-                if (km != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::km, km);
-                } 
-                if (hr != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::hr, hr);
-                } 
-                if (cad != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::cad, cad);
-                }    
-                if (lati != NA_VALUE && lngi != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::lat, lat);
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::lng, lng);
-                }    
-                if (alt != NA_VALUE) {
-                    rideFile->command->setPointValue(lastPointIndex, RideFile::alt, alt);
-                }                     
-
-            }
-
-                return; // Sketchy, but some FIT files do this.
-            
-        }
+        if (time == last_time)
+            return; // Sketchy, but some FIT files do this.
         if (stopped) {
             // As it turns out, this happens all the time in some FIT files.
             // Since we don't really understand the meaning, don't make noise.
@@ -1190,11 +1100,6 @@ struct FitFileReaderState
                 }
             }
         }
-
-
-
-
-
 
         if (km < 0.00001f) km = last_distance;
         rideFile->appendPoint(secs, cad, hr, km, kph, nm, watts, alt, lng, lat, headwind, slope, temperature,
