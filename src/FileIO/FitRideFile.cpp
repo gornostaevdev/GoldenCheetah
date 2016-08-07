@@ -845,8 +845,8 @@ struct FitFileReaderState
 
         double rvert = 0, rcad = 0, rcontact = 0;
         double smO2 = 0, tHb = 0;
+        int bryton_message_counter = 2;
         //bool run=false;
-        int bryton_message_counter = 0;
 
 
 
@@ -1045,14 +1045,14 @@ struct FitFileReaderState
                 */
 
                 // Then comes 2nd message and we have to
-                if(bryton_message_counter == 0){
+                if(bryton_message_counter == 2){
                 rideFile->setPointValue(lastPointIndex, RideFile::kph, kph);
                 rideFile->setPointValue(lastPointIndex, RideFile::km, km);
                 rideFile->setPointValue(lastPointIndex, RideFile::hr, hr);
                 rideFile->setPointValue(lastPointIndex, RideFile::cad, cad);
                 }
                 // GPS data always goes in the last third message
-                if(bryton_message_counter == 1){
+                if(bryton_message_counter == 3){
                     rideFile->setPointValue(lastPointIndex, RideFile::lat, lat);
                     rideFile->setPointValue(lastPointIndex, RideFile::lon, lng);
                     rideFile->setPointValue(lastPointIndex, RideFile::alt, alt);
